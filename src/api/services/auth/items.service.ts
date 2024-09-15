@@ -14,8 +14,6 @@ import dailyJobModel from "../../schema/daily-job.model";
 
 const scrap = new Scrapping();
 
-
-
 export class ItemService {
   public async addItem(data: AddItem) {
     const {
@@ -26,6 +24,11 @@ export class ItemService {
       item_title,
       item_keywords,
       item_category,
+      item_purchased_price,
+      item_purchased_date,
+      item_grading_cost,
+      item_sold_price,
+      item_sold_date,
     } = data;
 
     const findItem = await itemModel.findOne({ item_title });
@@ -47,6 +50,11 @@ export class ItemService {
       item_category,
       image_id: image_id,
       item_image: item_image,
+      item_purchased_price: item_purchased_price,
+      item_purchased_date: item_purchased_date,
+      item_grading_cost: item_grading_cost,
+      item_sold_price: item_sold_price,
+      item_sold_date: item_sold_date,
     });
 
     //create a reverse search
@@ -79,7 +87,7 @@ export class ItemService {
       };
     }
 
-    const input = url || file?.path
+    const input = url || file?.path;
     const uploadImage = await cloudinary.v2.uploader.upload(input);
 
     return {
@@ -99,6 +107,11 @@ export class ItemService {
       item_category,
       image_id,
       item_image,
+      item_purchased_price,
+      item_purchased_date,
+      item_grading_cost,
+      item_sold_price,
+      item_sold_date,
     } = data;
 
     console.log(data, item_id.id);
@@ -115,6 +128,14 @@ export class ItemService {
     updateItem.item_category = item_category || updateItem.item_category;
     updateItem.item_image = item_image || updateItem.item_image;
     updateItem.image_id = image_id || updateItem.image_id;
+    updateItem.item_purchased_price =
+      item_purchased_price || updateItem.item_purchased_price;
+    updateItem.item_purchased_date =
+      item_purchased_date || updateItem.item_purchased_date;
+    updateItem.item_grading_cost =
+      item_grading_cost || updateItem.item_grading_cost;
+    updateItem.item_sold_price = item_sold_price || updateItem.item_sold_price;
+    updateItem.item_sold_date = item_sold_date || updateItem.item_sold_date;
 
     updateItem.save();
 
@@ -126,18 +147,23 @@ export class ItemService {
     };
   }
   public async itemList(data) {
+    const { user, query } = data;
+    const day = parseInt(query.days);
+    const findItem = await itemModel.find({ _userId: user }).select("-_userId");
+    const item_per_day = findItem
+      .map(async (item) => {
+        const others = await this.getCatalogueValue(item._id);
+        return {
+          ...item.toObject(),
+          average: others ? others.average : "",
+          median: others ? others.median : "",
+          low: others ? others.low : "",
+          high: others ? others.high : "",
+        };
+      })
+      .filter((item) => item);
 
-    const { user, query, } = data;
-    const day = parseInt(query.days)
-    const findItem = await itemModel.find({ _userId: user }).select("-_userId")
-    const item_per_day = findItem.map(async (item) => {
-
-
-      const others = await this.getCatalogueValue(item._id)
-      return { ...item.toObject(), average: others ? others.average : '', median: others ? others.median : '', low: others ? others.low : '', high: others ? others.high : '' };
-    }).filter(item => item)
-
-    const resolved = await Promise.all(item_per_day)
+    const resolved = await Promise.all(item_per_day);
     if (!findItem)
       return {
         status: 400,
@@ -151,11 +177,10 @@ export class ItemService {
         status: 200,
         success: true,
         message: "Items Found for this account",
-        data: resolved
+        data: resolved,
       };
   }
   public async paginateList(data) {
-
     const { query, list } = data;
     const page = parseInt(query.page);
     const limit = parseInt(query.limit);
@@ -183,14 +208,13 @@ export class ItemService {
         new Date(b.stamps).valueOf() - new Date(a.stamps).valueOf()
     );
 
-
     const CheckUrl = (results) =>
       !results
         ? null
         : `https://https://hobbyist-api.herokuapp.com/get-items?page=${results.page}&limit=${results.limit}`;
 
     const returningData = {
-      data: List.slice(startIndex, endIndex).filter(x => x),
+      data: List.slice(startIndex, endIndex).filter((x) => x),
       PreviousPage: results.previous,
       NextUrl: CheckUrl(results.next),
       PreviousUrl: CheckUrl(results.previous),
@@ -322,9 +346,7 @@ export class ItemService {
   public async getRelatedItems(item: any) {
     //used for ebay items in both horizontal scroll near bottom of item page
 
-    const getItem = await itemModel
-      .findOne({ _id: item })
-      .select("-_id");
+    const getItem = await itemModel.findOne({ _id: item }).select("-_id");
 
     if (!getItem) {
       return {
@@ -337,24 +359,26 @@ export class ItemService {
 
     //get daily job for id
 
-    let dailyItem: any = await DailyItemModel.find({ _scrapId: item }).sort({ createdAt: -1 }).limit(1);
-    let same_data = [], related_data = [];
+    let dailyItem: any = await DailyItemModel.find({ _scrapId: item })
+      .sort({ createdAt: -1 })
+      .limit(1);
+    let same_data = [],
+      related_data = [];
     let scrapeTime = null;
     if (dailyItem && dailyItem?.length > 0) {
-      same_data = dailyItem[0].same_data
-      related_data = dailyItem[0].similar_data
-      scrapeTime = dailyItem[0]?.createdAt
-    }
-    else {
+      same_data = dailyItem[0].same_data;
+      related_data = dailyItem[0].similar_data;
+      scrapeTime = dailyItem[0]?.createdAt;
+    } else {
       const firstScrap = await ScrapModel.findOne({ _itemId: item }).select(
         "-_id -_userId -_itemId"
       );
-      same_data = firstScrap.same_data
-      related_data = firstScrap.similar_data
+      same_data = firstScrap.same_data;
+      related_data = firstScrap.similar_data;
       scrapeTime = firstScrap.createdAt;
     }
-    same_data.sort((b, a) => b.price - a.price)
-    related_data.sort((a, b) => b.price - a.price)
+    same_data.sort((b, a) => b.price - a.price);
+    related_data.sort((a, b) => b.price - a.price);
     if (getItem && same_data.length != 0) {
       return {
         status: 200,
@@ -367,13 +391,11 @@ export class ItemService {
           scrapeTime,
         },
       };
-    }
-
-    else {
-      console.log(`item "${getItem.item_title}" missing scraped data!`)
-      console.log(getItem)
-      console.log(same_data)
-      console.log(related_data)
+    } else {
+      console.log(`item "${getItem.item_title}" missing scraped data!`);
+      console.log(getItem);
+      console.log(same_data);
+      console.log(related_data);
       return {
         status: 400,
         success: false,
@@ -386,7 +408,6 @@ export class ItemService {
         },
       };
     }
-
   }
   public async saveScrapItem(data) {
     const { user, item_id, item_category, item_keyword } = data;
@@ -408,12 +429,17 @@ export class ItemService {
   }
   public getMedianPrice(items) {
     if (items) {
-
-      return _.sortBy(items.map((item) => parseFloat(item.price)))[Math.floor(items.length / 2)]
+      return _.sortBy(items.map((item) => parseFloat(item.price)))[
+        Math.floor(items.length / 2)
+      ];
     }
   }
   public getAveragePrice(items) {
-    if (items) return items.map((item) => parseFloat(item.price)).reduce((a, b) => a + b, 0) / items.length
+    if (items)
+      return (
+        items.map((item) => parseFloat(item.price)).reduce((a, b) => a + b, 0) /
+        items.length
+      );
   }
   public async getDailyItems(data) {
     const { itemId, type } = data;
@@ -421,40 +447,39 @@ export class ItemService {
     if (type === "items") {
       const findItems = await DailyItemModel.find({ _scrapId: itemId });
       console.log(findItems.length);
-      const findItem: any = await ScrapModel.find({ _itemId: itemId })
-      const average = findItem[0]?.average
-      const median = findItem[0]?.median
+      const findItem: any = await ScrapModel.find({ _itemId: itemId });
+      const average = findItem[0]?.average;
+      const median = findItem[0]?.median;
       const first_data = {
         itemId,
         average,
         median,
         createdAt: findItem[0]?.createdAt,
-        count: 0
-      }
+        count: 0,
+      };
 
-      const data = findItems
-        .map((item, count) => {
-          return {
-            item_id: item._scrapId,
-            average: item.average,
-            median: item.median,
-            createdAt: item.createdAt,
-            count,
-          };
-        })
+      const data = findItems.map((item, count) => {
+        return {
+          item_id: item._scrapId,
+          average: item.average,
+          median: item.median,
+          createdAt: item.createdAt,
+          count,
+        };
+      });
 
       return {
         status: 200,
         success: true,
         message: "Resource found",
-        data: [first_data, ...data].sort((a, b) => new Date(b.createdAt).valueOf() - new Date(a.createdAt).valueOf())
-      }
-
+        data: [first_data, ...data].sort(
+          (a, b) =>
+            new Date(b.createdAt).valueOf() - new Date(a.createdAt).valueOf()
+        ),
+      };
     }
     if (type === "categories") {
-
       const targetItem = await itemModel.findOne({ _id: itemId });
-
 
       const targetCategory = await DailyItemModel.find({
         category: targetItem.item_category,
@@ -478,84 +503,84 @@ export class ItemService {
               createdAt: item.createdAt,
               count,
             };
-          }).sort((a, b) => new Date(b.createdAt).valueOf() - new Date(a.createdAt).valueOf());
+          })
+          .sort(
+            (a, b) =>
+              new Date(b.createdAt).valueOf() - new Date(a.createdAt).valueOf()
+          );
 
         return {
           status: 200,
           success: true,
           message: "Resource found",
-          data
+          data,
         };
       } else {
         return {
           status: 200,
           success: true,
           message: "Not enough resource found for the selected date",
-          data: []
+          data: [],
         };
       }
     }
   }
   public async getCatalogueValue(id) {
-
     try {
-
-      const findScraps = await DailyItemModel.find({ _scrapId: id }).sort({ createdAt: -1 }).limit(1);
+      const findScraps = await DailyItemModel.find({ _scrapId: id })
+        .sort({ createdAt: -1 })
+        .limit(1);
       if (findScraps.length > 0) {
-
-        const todayValue:any = findScraps
+        const todayValue: any = findScraps;
 
         if (todayValue.length > 0) {
-
           //if no average you can calculate it
 
-          let average = todayValue[0]?.average
-          const median = todayValue[0]?.median
-          const low = todayValue[0]?.lowest_price
-          const high = todayValue[0]?.highest_price
+          let average = todayValue[0]?.average;
+          const median = todayValue[0]?.median;
+          const low = todayValue[0]?.lowest_price;
+          const high = todayValue[0]?.highest_price;
 
           // (not really necessary, but just in case)
           if (!todayValue[0]?.average) {
-            average = todayValue[0].reduce((a, b) => a + b, 0)
+            average = todayValue[0].reduce((a, b) => a + b, 0);
           }
-
 
           return {
-            average: average ? average : '',
-            median: median ? median : '',
-            low: low ? low : '',
-            high: high ? high : '',
-          }
+            average: average ? average : "",
+            median: median ? median : "",
+            low: low ? low : "",
+            high: high ? high : "",
+          };
         }
       } else {
-
-        const findItem: any = await ScrapModel.find({ _itemId: id }).sort({ createdAt: -1 }).limit(1)
+        const findItem: any = await ScrapModel.find({ _itemId: id })
+          .sort({ createdAt: -1 })
+          .limit(1);
 
         if (findItem) {
-
-          const todayValue = findItem
+          const todayValue = findItem;
 
           if (todayValue.length > 0) {
-            let average = todayValue[0]?.average
-            const median = todayValue[0]?.median
-            const low = todayValue[0]?.lowest_price
-            const high = todayValue[0]?.highest_price
+            let average = todayValue[0]?.average;
+            const median = todayValue[0]?.median;
+            const low = todayValue[0]?.lowest_price;
+            const high = todayValue[0]?.highest_price;
 
             // (not really necessary, but just in case)
             if (!todayValue[0]?.average) {
-              average = todayValue[0].reduce((a, b) => a + b, 0)
+              average = todayValue[0].reduce((a, b) => a + b, 0);
             }
 
             return {
-              average: average ? average : '',
-              median: median ? median : '',
-              low: low ? low : '',
-              high: high ? high : '',
-            }
+              average: average ? average : "",
+              median: median ? median : "",
+              low: low ? low : "",
+              high: high ? high : "",
+            };
           }
         }
       }
-
     } catch (err) {
       console.error(err);
     }

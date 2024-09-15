@@ -31,10 +31,25 @@ const Schema = new mongoose.Schema(
     image_id: {
       type: String,
     },
+    item_purchased_price: {
+      type: String,
+    },
+    item_purchased_date: {
+      type: String,
+    },
+    item_grading_cost: {
+      type: String,
+    },
+    item_sold_price: {
+      type: String,
+    },
+    item_sold_date: {
+      type: String,
+    },
     stamps: {
       type: Date,
       default: Date.now,
-    }
+    },
   },
   { timestamps: true }
 );

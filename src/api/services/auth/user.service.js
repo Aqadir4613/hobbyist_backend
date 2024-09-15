@@ -150,6 +150,7 @@ var AuthService = /** @class */ (function () {
         });
     };
     AuthService.prototype.accessTokenGenerator = function (userId) {
+        console.log( process.env.ACCESS_TOKEN_LIFE,'life');
         return __awaiter(this, void 0, void 0, function () {
             return __generator(this, function (_a) {
                 return [2 /*return*/, jsonwebtoken_1.sign({ _id: userId }, "swsh23hjddnknoh788778aCHOssc", {

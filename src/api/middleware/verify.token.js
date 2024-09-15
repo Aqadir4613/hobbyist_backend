@@ -13,7 +13,8 @@ var verify = function (req, res, next) {
             message: "No token provided!",
         });
     }
-    jsonwebtoken_1.default.verify(token, "swsh23hjddnknoh788778aCHOssc", function (err, decoded) {
+    jsonwebtoken_1.verify(token, "swsh23hjddnknoh788778aCHOssc", function (err, decoded) {
+        console.log(err,'sskshgdhjgaf', decoded);
         if (err) {
             return res.status(401).send({
                 status: "error",

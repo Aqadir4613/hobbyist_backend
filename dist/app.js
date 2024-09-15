@@ -69,6 +69,7 @@ app.get('/test-same', (req, res) => __awaiter(void 0, void 0, void 0, function* 
     // const x = await scrap.saveDailyJobSimilarItem()
     res.json('running');
 }));
+console.log('object');
 app.listen(port, () => {
     logger_1.logger.info(`server listening on http://localhost:${port}`);
 });

@@ -61,7 +61,7 @@ class Email {
             throw new error_handler_1.default("email template not found", 500);
         Object.keys(emailTemplate.data).forEach((key) => {
             const regex = new RegExp(`{{\.\*${key}\.\*}}`, "g");
-            template = template?.replace(regex, emailTemplate.data[key]);
+            template = template.replace(regex, emailTemplate.data[key]);
         });
         return template;
     }
